@@ -1,8 +1,28 @@
 import connectDB from '@/config/database';
 import { getSessionUser } from '@/utils/getSessionUser';
 import User from '@/models/User';
+import Property from '@/models/Property';
 
 export const dynamic = 'force-dynamic';
+
+// GET /api/bookmarks
+export const GET = async () => {
+  try {
+    await connectDB();
+
+    const sessionUser = await getSessionUser();
+    if (!sessionUser?.userId) return new Response('Unauthorized', { status: 401 });
+    const { userId } = sessionUser;
+    const user = await User.findById(userId);
+
+    const bookmarks = await Property.find({ _id: { $in: user?.bookmarks } });
+
+    return new Response(JSON.stringify(bookmarks), { status: 200 });
+  } catch (e) {
+    console.log(e);
+    return new Response('Internal Server Error', { status: 500 });
+  }
+};
 
 export const POST = async (request) => {
   try {
