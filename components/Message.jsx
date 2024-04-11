@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useGlobalContext } from '@/context/GlobalContext';
 
 const Message = ({ message }) => {
+  const { setUnreadCount } = useGlobalContext();
   const [isRead, setIsRead] = useState(message?.read);
+  const [isDeleted, setIsDeleted] = useState(false);
 
   const handleReadClick = async () => {
     try {
@@ -13,6 +16,7 @@ const Message = ({ message }) => {
       if (res.status === 200) {
         const { read } = await res.json();
         setIsRead(read);
+        setUnreadCount((prevCount) => read ? prevCount - 1 : prevCount + 1);
         toast.success(`Message marked as ${read ? 'read' : 'new'}`);
       }
     } catch (error) {
@@ -20,6 +24,25 @@ const Message = ({ message }) => {
       toast.error('An error occurred. Please try again.');
     }
   };
+
+  const handleDeleteClick = async () => {
+    try {
+      const res = await fetch(`/api/messages/${message._id}`, { method: 'DELETE' });
+
+      if (res.status === 201) {
+        setIsDeleted(true);
+        setUnreadCount((prevCount) => isRead ? prevCount : prevCount - 1);
+        toast.success('Message deleted');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('An error occurred. Please try again.');
+    }
+  };
+
+  if (isDeleted) {
+    return null;
+  }
 
   return (<div
     className="relative bg-white p-4 rounded-md shadow-md border border-gray-200">
@@ -34,7 +57,7 @@ const Message = ({ message }) => {
       {message?.body}
     </p>
     <ul className="mt-4">
-      <li><strong>Name: </strong>{message?.sender?.username}</li>
+      <li><strong>Name: </strong>{message?.name}</li>
       <li>
         <strong>Reply Email: </strong>
         <a href={`mailto:${message?.email}`} className="text-blue-500">
@@ -55,7 +78,10 @@ const Message = ({ message }) => {
     >
       {isRead ? 'Mark as New' : 'Mark as Read'}
     </button>
-    <button className="mt-4 bg-red-500 text-white py-1 px-3 rounded-md">
+    <button
+      className="mt-4 bg-red-500 text-white py-1 px-3 rounded-md"
+      onClick={handleDeleteClick}
+    >
       Delete
     </button>
   </div>);
